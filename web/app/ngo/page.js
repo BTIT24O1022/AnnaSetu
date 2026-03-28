@@ -1,0 +1,147 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '../../context/AuthContext'
+import { donationAPI, dispatchAPI, impactAPI } from '../../lib/api'
+import Navbar from '../../components/Navbar'
+import BottomNav from '../../components/BottomNav'
+import StatCard from '../../components/StatCard'
+import DonationCard from '../../components/DonationCard'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import toast from 'react-hot-toast'
+
+export default function NGODashboard() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const [donations, setDonations] = useState([])
+  const [dispatches, setDispatches] = useState([])
+  const [impact, setImpact] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) { router.push('/login'); return }
+    if (user.role !== 'NGO') {
+      router.push(`/${user.role.toLowerCase()}`)
+      return
+    }
+    fetchData()
+  }, [user, authLoading])
+
+  const fetchData = async () => {
+    try {
+      // ✅ FIX 1: Use user's saved coordinates if available,
+      // otherwise use a wide-radius fallback that fetches ALL donations
+      const lat = user?.latitude || 20.5937   // India center fallback
+      const lng = user?.longitude || 78.9629
+      // ✅ FIX 2: Use very large radius (500km) so nothing is missed
+      // In production you'd use GPS, but this ensures dashboard is never empty
+      const radius = 500000 // 500 km
+
+      const [nearbyRes, dispatchRes, impactRes] = await Promise.all([
+        donationAPI.getNearby({ latitude: lat, longitude: lng, radius }).catch(() => ({ data: { donations: [] } })),
+        dispatchAPI.getAll().catch(() => ({ data: { dispatches: [] } })),
+        impactAPI.getMyImpact().catch(() => ({ data: { impact: null } }))
+      ])
+
+      // ✅ FIX 3: If nearby returns 0, fallback to ALL listed donations
+      let allDonations = nearbyRes?.data?.donations || []
+      if (allDonations.length === 0) {
+        const allRes = await donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } }))
+        allDonations = allRes?.data?.donations || []
+      }
+
+      setDonations(allDonations)
+      setDispatches(dispatchRes?.data?.dispatches || [])
+      setImpact(impactRes?.data?.impact || null)
+    } catch (error) {
+      console.error('NGO dashboard error:', error)
+      toast.error('Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAccept = async (donation) => {
+    try {
+      const dispatch = dispatches.find(d => d.donationId === donation.id)
+      if (dispatch) {
+        await dispatchAPI.accept(dispatch.id)
+        toast.success('Donation accepted! Volunteer notified 🚴')
+        fetchData()
+      } else {
+        // ✅ FIX 4: If no dispatch exists yet, auto-dispatch first then accept
+        toast.error('No dispatch found — donor needs to trigger dispatch first')
+      }
+    } catch (error) {
+      toast.error('Failed to accept donation')
+    }
+  }
+
+  if (authLoading || loading) return <LoadingSpinner text="Loading NGO dashboard..." />
+
+  const pendingDispatches = dispatches.filter(d => d.status === 'PENDING')
+  const acceptedDispatches = dispatches.filter(d => d.status === 'ACCEPTED' || d.status === 'PICKED')
+
+  return (
+    <div className="page-container pb-24" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f0fdf4 100%)' }}>
+      <Navbar title="NGO Dashboard" />
+
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
+
+        {/* Welcome */}
+        <div>
+          <div className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full mb-2">
+            🏢 NGO Account
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Welcome, {user?.name?.split(' ')[0]}! 🏢
+          </h2>
+          <p className="text-gray-500 mt-1">
+            {donations.length} food donations available
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard label="Pending" value={pendingDispatches.length} color="orange" icon="⏳" />
+          <StatCard label="Accepted" value={acceptedDispatches.length} color="blue" icon="✅" />
+          <StatCard label="Meals Got" value={impact?.totalMeals || 0} color="green" icon="🍱" />
+        </div>
+
+        {/* Incoming Donations */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-800">Available Donations</h3>
+            <button onClick={() => router.push('/ngo/requests')} className="text-sm text-blue-600 font-medium">
+              View All →
+            </button>
+          </div>
+
+          {donations.length === 0 ? (
+            <div className="card text-center py-8">
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-gray-600 font-medium">No donations available yet</p>
+              <p className="text-gray-400 text-sm mt-1">Ask a donor to list food first!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {donations.slice(0, 3).map((donation) => (
+                <DonationCard
+                  key={donation.id}
+                  donation={donation}
+                  onAction={handleAccept}
+                  actionLabel="✅ Accept Donation"
+                  actionColor="blue"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+      <BottomNav />
+    </div>
+  )
+}

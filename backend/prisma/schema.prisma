@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USER TABLE ───────────────────────────────────
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  phone          String   @unique
+  password       String
+  role           Role     @default(DONOR)
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  greenCoins     Int      @default(0)
+  foodSafeRating Float    @default(5.0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  donations      Donation[]   @relation("DonorDonations")
+  dispatches     Dispatch[]   @relation("VolunteerDispatches")
+  ngoDispatches  Dispatch[]   @relation("NGODispatches")
+  impactRecord   Impact?
+}
+
+enum Role {
+  DONOR
+  NGO
+  VOLUNTEER
+  ADMIN
+}
+
+// ─── DONATION TABLE ───────────────────────────────
+model Donation {
+  id            String         @id @default(uuid())
+  donorId       String
+  donor         User           @relation("DonorDonations", fields: [donorId], references: [id])
+  foodName      String
+  description   String?
+  quantity      Int
+  unit          String         @default("plates")
+  dietType      DietType       @default(VEG)
+  foodSafeScore Float          @default(0)
+  expiryHours   Int            @default(4)
+  photoUrl      String?
+  latitude      Float
+  longitude     Float
+  address       String
+  status        DonationStatus @default(LISTED)
+  co2Saved      Float          @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  dispatch      Dispatch?
+}
+
+enum DietType {
+  VEG
+  NONVEG
+  JAIN
+  HALAL
+  DIABETIC_SAFE
+}
+
+enum DonationStatus {
+  LISTED
+  MATCHED
+  DISPATCHED
+  DELIVERED
+  EXPIRED
+  CANCELLED
+}
+
+// ─── DISPATCH TABLE ───────────────────────────────
+model Dispatch {
+  id            String         @id @default(uuid())
+  donationId    String         @unique
+  donation      Donation       @relation(fields: [donationId], references: [id])
+  volunteerId   String?
+  volunteer     User?          @relation("VolunteerDispatches", fields: [volunteerId], references: [id])
+  ngoId         String?
+  ngo           User?          @relation("NGODispatches", fields: [ngoId], references: [id])
+  status        DispatchStatus @default(PENDING)
+  assignedAt    DateTime       @default(now())
+  acceptedAt    DateTime?
+  pickedAt      DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum DispatchStatus {
+  PENDING
+  ACCEPTED
+  PICKED
+  DELIVERED
+  FAILED
+}
+
+// ─── HUNGER PIN TABLE ─────────────────────────────
+model HungerPin {
+  id          String   @id @default(uuid())
+  latitude    Float
+  longitude   Float
+  address     String
+  description String?
+  peopleCount Int      @default(0)
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── IMPACT TABLE ─────────────────────────────────
+model Impact {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  totalMeals    Int      @default(0)
+  totalCo2      Float    @default(0)
+  totalDonations Int     @default(0)
+  greenCoins    Int      @default(0)
+  weeklyMeals   Int      @default(0)
+  monthlyMeals  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
