@@ -124,7 +124,7 @@ export default function AddFoodPage() {
       const formData = new FormData()
       formData.append('photo', file)
       const token = localStorage.getItem('annasetu_token')
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/foodclock/analyse`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://annasetu-47ci.onrender.com/api'}/foodclock/analyse`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData
