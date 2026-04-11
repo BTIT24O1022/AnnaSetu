@@ -171,9 +171,9 @@ router.get('/nearby', protect, async (req, res) => {
     const lng = parseFloat(longitude);
     const radiusMeters = parseFloat(radius);
 
-    // ✅ FIX 5: Removed `foodSafeScore: { gte: 50 }` filter —
-    // this was blocking ALL manually-entered donations (score defaults to 0)
-    const where = { status: 'LISTED' };
+    // ✅ FIX 5: Fetch both LISTED and MATCHED donations, since newly created donations
+    // might be auto-matched immediately but still need to be claimed by an NGO
+    const where = { status: { in: ['LISTED', 'MATCHED'] } };
 
     if (dietType) {
       where.dietType = dietType;
@@ -254,7 +254,13 @@ router.get('/', protect, async (req, res) => {
     const { status, dietType, limit = 20, page = 1 } = req.query;
 
     const where = {};
-    if (status) where.status = status;
+    if (status) {
+      if (status === 'LISTED') {
+        where.status = { in: ['LISTED', 'MATCHED'] };
+      } else {
+        where.status = status;
+      }
+    }
     if (dietType) where.dietType = dietType;
 
     const donations = await prisma.donation.findMany({

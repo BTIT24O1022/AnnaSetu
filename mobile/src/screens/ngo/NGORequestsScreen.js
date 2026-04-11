@@ -19,14 +19,25 @@ export default function NGORequestsScreen() {
 
   const fetchData = async () => {
     try {
+      const lat = 20.5937 // Fallback to India center
+      const lng = 78.9629
+      const radius = 500000 // 500 km
+      
       const [nearbyRes, dispRes] = await Promise.all([
-        donationAPI.getNearby({ latitude: 19.0760, longitude: 72.8777, radius: 10000 }),
-        dispatchAPI.getAll()
+        donationAPI.getNearby({ latitude: lat, longitude: lng, radius }).catch(() => ({ data: { donations: [] } })),
+        dispatchAPI.getAll().catch(() => ({ data: { dispatches: [] } }))
       ])
-      setDonations(nearbyRes.data.donations || [])
-      setDispatches(dispRes.data.dispatches || [])
+      
+      let allDonations = nearbyRes?.data?.donations || []
+      if (allDonations.length === 0) {
+        const allRes = await donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } }))
+        allDonations = allRes?.data?.donations || []
+      }
+      
+      setDonations(allDonations)
+      setDispatches(dispRes?.data?.dispatches || [])
     } catch {
-      Toast.show({ type: 'error', text1: 'Failed to load' })
+      Toast.show({ type: 'error', text1: 'Failed to load data' })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -35,11 +46,17 @@ export default function NGORequestsScreen() {
 
   const handleAccept = async (donation) => {
     try {
-      const dispatch = dispatches.find(d => d.donationId === donation.id)
+      let dispatch = dispatches.find(d => d.donationId === donation.id)
       if (!dispatch) {
-        Toast.show({ type: 'error', text1: 'No dispatch found' })
-        return
+        const autoRes = await dispatchAPI.autoDispatch(donation.id);
+        if (autoRes.data && autoRes.data.dispatch) {
+          dispatch = autoRes.data.dispatch;
+        } else {
+          Toast.show({ type: 'error', text1: 'No dispatch found and auto-dispatch failed' })
+          return;
+        }
       }
+      
       await dispatchAPI.accept(dispatch.id)
       Toast.show({ type: 'success', text1: 'Accepted! Volunteer notified 🚴' })
       fetchData()

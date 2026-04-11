@@ -86,11 +86,17 @@ export default function NGORequestsPage() {
 
   const handleAccept = async (donation) => {
     try {
-      const dispatch = dispatches.find(d => d.donationId === donation.id)
+      let dispatch = dispatches.find(d => d.donationId === donation.id)
       if (!dispatch) {
-        toast.error('No dispatch record found for this donation')
-        return
+        const autoRes = await dispatchAPI.autoDispatch(donation.id);
+        if (autoRes.data && autoRes.data.dispatch) {
+          dispatch = autoRes.data.dispatch;
+        } else {
+          toast.error('No dispatch record found and auto-dispatch failed');
+          return;
+        }
       }
+      
       await dispatchAPI.accept(dispatch.id)
       toast.success('Donation accepted! Volunteer has been notified 🚴')
       fetchData()

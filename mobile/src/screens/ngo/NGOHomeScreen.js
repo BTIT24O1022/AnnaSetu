@@ -22,12 +22,23 @@ export default function NGOHomeScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
+      const lat = user?.latitude || 20.5937
+      const lng = user?.longitude || 78.9629
+      const radius = 500000 // 500 km
+      
       const [nearbyRes, dispRes] = await Promise.all([
-        donationAPI.getNearby({ latitude: 26.2183, longitude: 78.1828, radius: 10000 }),
-        dispatchAPI.getAll()
+        donationAPI.getNearby({ latitude: lat, longitude: lng, radius }).catch(() => ({ data: { donations: [] } })),
+        dispatchAPI.getAll().catch(() => ({ data: { dispatches: [] } }))
       ])
-      setDonations(nearbyRes.data.donations || [])
-      setDispatches(dispRes.data.dispatches || [])
+      
+      let allDonations = nearbyRes?.data?.donations || []
+      if (allDonations.length === 0) {
+        const allRes = await donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } }))
+        allDonations = allRes?.data?.donations || []
+      }
+      
+      setDonations(allDonations)
+      setDispatches(dispRes?.data?.dispatches || [])
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to load data' })
     } finally {
@@ -38,11 +49,17 @@ export default function NGOHomeScreen({ navigation }) {
 
   const handleAccept = async (donation) => {
     try {
-      const dispatch = dispatches.find(d => d.donationId === donation.id)
+      let dispatch = dispatches.find(d => d.donationId === donation.id)
       if (!dispatch) {
-        Toast.show({ type: 'error', text1: 'No dispatch found' })
-        return
+        const autoRes = await dispatchAPI.autoDispatch(donation.id);
+        if (autoRes.data && autoRes.data.dispatch) {
+          dispatch = autoRes.data.dispatch;
+        } else {
+          Toast.show({ type: 'error', text1: 'No dispatch found and auto-dispatch failed' })
+          return;
+        }
       }
+      
       await dispatchAPI.accept(dispatch.id)
       Toast.show({ type: 'success', text1: 'Accepted! Volunteer notified 🚴' })
       fetchData()

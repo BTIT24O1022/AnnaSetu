@@ -165,7 +165,8 @@ router.patch('/:id/accept', protect, restrictTo('NGO'), async (req, res) => {
       where: { id: req.params.id },
       data: {
         status: 'ACCEPTED',
-        acceptedAt: new Date()
+        acceptedAt: new Date(),
+        ngoId: req.user.id
       },
       include: {
         donation: {
@@ -210,7 +211,8 @@ router.patch('/:id/pickup', protect, restrictTo('VOLUNTEER'), async (req, res) =
       where: { id: req.params.id },
       data: {
         status: 'PICKED',
-        pickedAt: new Date()
+        pickedAt: new Date(),
+        volunteerId: req.user.id
       },
       include: {
         donation: true,
@@ -314,8 +316,18 @@ router.patch('/:id/deliver', protect, async (req, res) => {
 router.get('/', protect, async (req, res) => {
   try {
     const where = {}
-    if (req.user.role === 'NGO') where.ngoId = req.user.id
-    if (req.user.role === 'VOLUNTEER') where.volunteerId = req.user.id
+    if (req.user.role === 'NGO') {
+      where.OR = [
+        { ngoId: req.user.id },
+        { ngoId: null }
+      ];
+    }
+    if (req.user.role === 'VOLUNTEER') {
+      where.OR = [
+        { volunteerId: req.user.id },
+        { volunteerId: null }
+      ];
+    }
 
     const dispatches = await prisma.dispatch.findMany({
       where,

@@ -65,17 +65,23 @@ export default function NGODashboard() {
 
   const handleAccept = async (donation) => {
     try {
-      const dispatch = dispatches.find(d => d.donationId === donation.id)
-      if (dispatch) {
-        await dispatchAPI.accept(dispatch.id)
-        toast.success('Donation accepted! Volunteer notified 🚴')
-        fetchData()
-      } else {
-        // ✅ FIX 4: If no dispatch exists yet, auto-dispatch first then accept
-        toast.error('No dispatch found — donor needs to trigger dispatch first')
+      let dispatch = dispatches.find(d => d.donationId === donation.id)
+      if (!dispatch) {
+        const autoRes = await dispatchAPI.autoDispatch(donation.id);
+        if (autoRes.data && autoRes.data.dispatch) {
+          dispatch = autoRes.data.dispatch;
+        } else {
+          toast.error('No dispatch found and auto-dispatch failed');
+          return;
+        }
       }
+      
+      await dispatchAPI.accept(dispatch.id)
+      toast.success('Donation accepted! Volunteer notified 🚴')
+      fetchData()
     } catch (error) {
-      toast.error('Failed to accept donation')
+      const msg = error.response?.data?.message || 'Failed to accept donation'
+      toast.error(msg)
     }
   }
 
