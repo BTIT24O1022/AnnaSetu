@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // Use Production URL by default for deployment. 
 // For local testing on an emulator, change to 'http://10.0.2.2:5000/api'
 // For local testing on a real phone, change to 'http://YOUR_WIFI_IP:5000/api'
-const BASE_URL = 'https://annasetu-47ci.onrender.com/api'
+const BASE_URL = 'https://annasetu-2.onrender.com/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
