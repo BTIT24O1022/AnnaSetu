@@ -1,10 +1,10 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-// ✅ FIXED: Only ONE BASE_URL — change this to your PC's IP
-const BASE_URL = 'http://192.168.1.5:5000/api'
-// Find your IP: run "ipconfig" on Windows, use the IPv4 address
-// For Android emulator use: http://10.0.2.2:5000/api
+// Use Production URL by default for deployment. 
+// For local testing on an emulator, change to 'http://10.0.2.2:5000/api'
+// For local testing on a real phone, change to 'http://YOUR_WIFI_IP:5000/api'
+const BASE_URL = 'https://annasetu-47ci.onrender.com/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
