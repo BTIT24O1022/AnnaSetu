@@ -116,10 +116,28 @@ export default function NGODashboard() {
           <StatCard label="Meals Got" value={impact?.totalMeals || 0} color="green" icon="🍱" />
         </div>
 
-        {/* Incoming Donations */}
+        {/* Assigned Dispatches (MATCHED TO THIS NGO) */}
+        {pendingDispatches.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Assigned to You</h3>
+            <div className="space-y-3">
+              {pendingDispatches.map((dispatch) => (
+                <DonationCard
+                  key={dispatch.id}
+                  donation={{...dispatch.donation, status: 'MATCHED'}}
+                  onAction={() => handleAccept(dispatch.donationId)}
+                  actionLabel="✅ Accept Match"
+                  actionColor="orange"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Incoming Donations (LISTED publicly) */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-800">Available Donations</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Available Public Donations</h3>
             <button onClick={() => router.push('/ngo/requests')} className="text-sm text-blue-600 font-medium">
               View All →
             </button>
@@ -128,8 +146,8 @@ export default function NGODashboard() {
           {donations.length === 0 ? (
             <div className="card text-center py-8">
               <p className="text-4xl mb-3">🔍</p>
-              <p className="text-gray-600 font-medium">No donations available yet</p>
-              <p className="text-gray-400 text-sm mt-1">Ask a donor to list food first!</p>
+              <p className="text-gray-600 font-medium">No public donations right now</p>
+              <p className="text-gray-400 text-sm mt-1">If a donor lists food, it will appear here!</p>
             </div>
           ) : (
             <div className="space-y-3">
