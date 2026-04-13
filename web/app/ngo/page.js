@@ -124,8 +124,8 @@ export default function NGODashboard() {
               {pendingDispatches.map((dispatch) => (
                 <DonationCard
                   key={dispatch.id}
-                  donation={{...dispatch.donation, status: 'MATCHED'}}
-                  onAction={() => handleAccept(dispatch.donationId)}
+                  donation={{...dispatch.donation, id: dispatch.donationId, status: 'MATCHED'}}
+                  onAction={handleAccept}
                   actionLabel="✅ Accept Match"
                   actionColor="orange"
                 />
