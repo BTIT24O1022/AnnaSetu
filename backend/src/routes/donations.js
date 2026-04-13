@@ -190,9 +190,8 @@ router.get('/nearby', protect, async (req, res) => {
     const lng = parseFloat(longitude);
     const radiusMeters = parseFloat(radius);
 
-    // Fetch ONLY 'LISTED' donations. MATCHED donations shouldn't appear in the general 
-    // available pool because they already have an assigned NGO/Volunteer via autoDispatch.
-    const where = { status: 'LISTED' };
+    // Fetch 'LISTED' and 'MATCHED' donations for backwards compatibility
+    const where = { status: { in: ['LISTED', 'MATCHED'] } };
 
     if (dietType) {
       where.dietType = dietType;
@@ -274,7 +273,11 @@ router.get('/', protect, async (req, res) => {
 
     const where = {};
     if (status) {
-      where.status = status;
+      if (status === 'LISTED') {
+        where.status = { in: ['LISTED', 'MATCHED'] };
+      } else {
+        where.status = status;
+      }
     }
     if (dietType) where.dietType = dietType;
 
