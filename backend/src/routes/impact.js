@@ -7,7 +7,7 @@ const router = express.Router();
 // ─── GET MY IMPACT ────────────────────────────────
 router.get('/me', protect, async (req, res) => {
   try {
-    const impact = await prisma.impact.findUnique({
+    let impact = await prisma.impact.findUnique({
       where: { userId: req.user.id },
       include: {
         user: {
@@ -22,9 +22,18 @@ router.get('/me', protect, async (req, res) => {
     });
 
     if (!impact) {
-      return res.status(404).json({
-        success: false,
-        message: 'Impact record not found'
+      impact = await prisma.impact.create({
+        data: { userId: req.user.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              greenCoins: true
+            }
+          }
+        }
       });
     }
 

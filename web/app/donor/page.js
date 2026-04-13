@@ -32,11 +32,11 @@ export default function DonorDashboard() {
   const fetchData = async () => {
     try {
       const [donRes, impRes] = await Promise.all([
-        donationAPI.getMine(),
-        impactAPI.getMyImpact()
+        donationAPI.getMine().catch(() => ({ data: { donations: [] } })),
+        impactAPI.getMyImpact().catch(() => ({ data: { impact: null } }))
       ])
-      setDonations(donRes.data.donations || [])
-      setImpact(impRes.data.impact || null)
+      setDonations(donRes?.data?.donations || [])
+      setImpact(impRes?.data?.impact || null)
     } catch (error) {
       toast.error('Failed to load data')
     } finally {

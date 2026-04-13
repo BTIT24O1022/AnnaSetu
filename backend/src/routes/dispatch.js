@@ -258,24 +258,8 @@ router.patch('/:id/deliver', protect, async (req, res) => {
       data: { status: 'DELIVERED' }
     })
 
-    // Update donor impact
-    await prisma.impact.update({
-      where: { userId: donation.donorId },
-      data: {
-        totalMeals: { increment: donation.quantity },
-        totalCo2: { increment: parseFloat(donation.co2Saved) },
-        totalDonations: { increment: 1 },
-        greenCoins: { increment: donation.quantity },
-        weeklyMeals: { increment: donation.quantity },
-        monthlyMeals: { increment: donation.quantity }
-      }
-    })
-
-    // Award GreenCoins to donor
-    await prisma.user.update({
-      where: { id: donation.donorId },
-      data: { greenCoins: { increment: donation.quantity } }
-    })
+    // Impact and GreenCoins are now awarded immediately during donation listing
+    // so we no longer increment them here on delivery to avoid double counting.
 
     // ─── WhatsApp: Alert donor delivery complete ───
     if (donation.donor) {

@@ -90,6 +90,25 @@ router.post('/', protect, restrictTo('DONOR'), async (req, res) => {
       }
     });
 
+    // Update donor impact immediately upon listing
+    await prisma.impact.update({
+      where: { userId: req.user.id },
+      data: {
+        totalMeals: { increment: parseInt(quantity) },
+        totalCo2: { increment: parseFloat(co2Saved) },
+        totalDonations: { increment: 1 },
+        greenCoins: { increment: parseInt(quantity) },
+        weeklyMeals: { increment: parseInt(quantity) },
+        monthlyMeals: { increment: parseInt(quantity) }
+      }
+    });
+
+    // Award GreenCoins to donor immediately
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { greenCoins: { increment: parseInt(quantity) } }
+    });
+
     res.status(201).json({
       success: true,
       message: '🎉 Food listed successfully! Finding nearest NGO...',

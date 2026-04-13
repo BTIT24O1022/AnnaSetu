@@ -31,11 +31,11 @@ export default function VolunteerDashboard() {
   const fetchData = async () => {
     try {
       const [dispRes, impRes] = await Promise.all([
-        dispatchAPI.getAll(),
-        impactAPI.getMyImpact()
+        dispatchAPI.getAll().catch(() => ({ data: { dispatches: [] } })),
+        impactAPI.getMyImpact().catch(() => ({ data: { impact: null } }))
       ])
-      setDispatches(dispRes.data.dispatches || [])
-      setImpact(impRes.data.impact || null)
+      setDispatches(dispRes?.data?.dispatches || [])
+      setImpact(impRes?.data?.impact || null)
     } catch (error) {
       toast.error('Failed to load data')
     } finally {

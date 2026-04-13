@@ -35,9 +35,9 @@ export default function NGODashboard() {
       // otherwise use a wide-radius fallback that fetches ALL donations
       const lat = user?.latitude || 20.5937   // India center fallback
       const lng = user?.longitude || 78.9629
-      // ✅ FIX 2: Use very large radius (500km) so nothing is missed
+      // ✅ FIX 2: Use very large radius (50000km) so nothing is missed
       // In production you'd use GPS, but this ensures dashboard is never empty
-      const radius = 500000 // 500 km
+      const radius = 50000000 // 50,000 km
 
       const [nearbyRes, dispatchRes, impactRes] = await Promise.all([
         donationAPI.getNearby({ latitude: lat, longitude: lng, radius }).catch(() => ({ data: { donations: [] } })),
