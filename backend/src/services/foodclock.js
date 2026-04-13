@@ -14,8 +14,6 @@ async function analyseFoodPhoto(imagePath) {
 
     console.log('🤖 Sending food photo to Gemini Flash Vision...')
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
-
     const prompt = `You are a food safety expert. Analyse this food photo carefully.
 
 Return ONLY a valid JSON object with these exact fields:
@@ -39,15 +37,34 @@ Rules:
 - If image is not food, set safetyScore to 0 and canDonate to false
 - Return ONLY the JSON object, no extra text, no markdown backticks`
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: mimeType
-        }
+    // Multi-model fallback logic to prevent 503 errors from breaking the app
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    let result = null;
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`🤖 Attempting analysis with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName })
+        result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: mimeType
+            }
+          }
+        ])
+        if (result) break; // Success! Break the loop
+      } catch (err) {
+        console.warn(`⚠️ Model ${modelName} failed: ${err.message}`);
+        lastError = err;
       }
-    ])
+    }
+
+    if (!result) {
+      throw lastError || new Error('All AI models failed to respond');
+    }
 
     const content = result.response.text()
     console.log('🤖 Gemini Response:', content)
@@ -104,8 +121,6 @@ async function analyseFoodFromURL(imageUrl) {
     const base64Image = Buffer.from(response.data).toString('base64')
     const mimeType = response.headers['content-type'] || 'image/jpeg'
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
-
     const prompt = `You are a food safety expert. Analyse this food photo carefully.
 
 Return ONLY a valid JSON object with these exact fields:
@@ -121,15 +136,34 @@ Return ONLY a valid JSON object with these exact fields:
 }
 Return ONLY the JSON object, no extra text, no markdown backticks`
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: mimeType
-        }
+    // Multi-model fallback logic to prevent 503 errors from breaking the app
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    let result = null;
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`🤖 Attempting URL analysis with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName })
+        result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: mimeType
+            }
+          }
+        ])
+        if (result) break; // Success! Break the loop
+      } catch (err) {
+        console.warn(`⚠️ Model ${modelName} failed: ${err.message}`);
+        lastError = err;
       }
-    ])
+    }
+
+    if (!result) {
+      throw lastError || new Error('All AI models failed to respond');
+    }
 
     const content = result.response.text()
     const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim()
