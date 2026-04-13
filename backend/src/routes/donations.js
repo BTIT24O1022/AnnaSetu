@@ -274,11 +274,7 @@ router.get('/', protect, async (req, res) => {
 
     const where = {};
     if (status) {
-      if (status === 'LISTED') {
-        where.status = { in: ['LISTED', 'MATCHED'] };
-      } else {
-        where.status = status;
-      }
+      where.status = status;
     }
     if (dietType) where.dietType = dietType;
 
