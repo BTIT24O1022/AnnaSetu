@@ -38,7 +38,7 @@ Rules:
 - Return ONLY the JSON object, no extra text, no markdown backticks`
 
     // Multi-model fallback logic to prevent 503 errors from breaking the app
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest'];
     let result = null;
     let lastError = null;
 
@@ -57,13 +57,16 @@ Rules:
         ])
         if (result) break; // Success! Break the loop
       } catch (err) {
-        console.warn(`⚠️ Model ${modelName} failed: ${err.message}`);
+        console.warn(`⚠️ Model ${modelName} failed`);
         lastError = err;
       }
     }
 
     if (!result) {
-      throw lastError || new Error('All AI models failed to respond');
+      if (lastError && lastError.status === 503) {
+        throw new Error('Google AI services are currently heavily overloaded worldwide. Please try uploading your food photo again in roughly 60 seconds!');
+      }
+      throw lastError || new Error('Google AI failed to respond.');
     }
 
     const content = result.response.text()
@@ -137,7 +140,7 @@ Return ONLY a valid JSON object with these exact fields:
 Return ONLY the JSON object, no extra text, no markdown backticks`
 
     // Multi-model fallback logic to prevent 503 errors from breaking the app
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest'];
     let result = null;
     let lastError = null;
 
@@ -156,13 +159,16 @@ Return ONLY the JSON object, no extra text, no markdown backticks`
         ])
         if (result) break; // Success! Break the loop
       } catch (err) {
-        console.warn(`⚠️ Model ${modelName} failed: ${err.message}`);
+        console.warn(`⚠️ Model ${modelName} failed`);
         lastError = err;
       }
     }
 
     if (!result) {
-      throw lastError || new Error('All AI models failed to respond');
+      if (lastError && lastError.status === 503) {
+        throw new Error('Google AI services are currently heavily overloaded worldwide. Please try uploading your food photo again in roughly 60 seconds!');
+      }
+      throw lastError || new Error('Google AI failed to respond.');
     }
 
     const content = result.response.text()
