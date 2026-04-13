@@ -190,9 +190,9 @@ router.get('/nearby', protect, async (req, res) => {
     const lng = parseFloat(longitude);
     const radiusMeters = parseFloat(radius);
 
-    // ✅ FIX 5: Fetch both LISTED and MATCHED donations, since newly created donations
-    // might be auto-matched immediately but still need to be claimed by an NGO
-    const where = { status: { in: ['LISTED', 'MATCHED'] } };
+    // Fetch ONLY 'LISTED' donations. MATCHED donations shouldn't appear in the general 
+    // available pool because they already have an assigned NGO/Volunteer via autoDispatch.
+    const where = { status: 'LISTED' };
 
     if (dietType) {
       where.dietType = dietType;
