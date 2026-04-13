@@ -34,64 +34,48 @@ Rules:
 - safetyScore 50-69 = fair, donate immediately
 - safetyScore below 50 = unsafe, do not donate
 - Be conservative — food safety is critical
-- If image is not food, set safetyScore to 0 and canDonate to false
-- Return ONLY the JSON object, no extra text, no markdown backticks`
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    // Multi-model fallback logic to prevent 503 errors from breaking the app
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest'];
-    let result = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`🤖 Attempting analysis with model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName })
-        result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              data: base64Image,
-              mimeType: mimeType
-            }
+    try {
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: mimeType
           }
-        ])
-        if (result) break; // Success! Break the loop
-      } catch (err) {
-        console.warn(`⚠️ Model ${modelName} failed`);
-        lastError = err;
+        }
+      ])
+
+      const content = result.response.text()
+      console.log('🤖 Gemini Response:', content)
+
+      // Clean and parse JSON
+      const cleaned = content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim()
+
+      const parsed = JSON.parse(cleaned)
+
+      return {
+        success: true,
+        analysis: {
+          foodName: parsed.foodName || 'Unknown Food',
+          foodType: parsed.foodType || 'UNKNOWN',
+          safetyScore: Math.min(100, Math.max(0, parsed.safetyScore || 0)),
+          estimatedHoursSafe: Math.min(24, Math.max(0, parsed.estimatedHoursSafe || 0)),
+          condition: parsed.condition || 'UNKNOWN',
+          recommendation: parsed.recommendation || 'Please check food manually',
+          concerns: parsed.concerns || 'NONE',
+          canDonate: parsed.canDonate === true
+        }
       }
-    }
-
-    if (!result) {
-      if (lastError && lastError.status === 503) {
-        throw new Error('Google AI services are currently heavily overloaded worldwide. Please try uploading your food photo again in roughly 60 seconds!');
+    } catch (err) {
+      if (err.status === 503 || String(err).includes('503')) {
+        throw new Error('Google AI services are currently receiving heavy worldwide demand. The 2.5-flash model is temporarily too busy. Please try uploading your image again in roughly 60 seconds!');
       }
-      throw lastError || new Error('Google AI failed to respond.');
-    }
-
-    const content = result.response.text()
-    console.log('🤖 Gemini Response:', content)
-
-    // Clean and parse JSON
-    const cleaned = content
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim()
-
-    const parsed = JSON.parse(cleaned)
-
-    return {
-      success: true,
-      analysis: {
-        foodName: parsed.foodName || 'Unknown Food',
-        foodType: parsed.foodType || 'UNKNOWN',
-        safetyScore: Math.min(100, Math.max(0, parsed.safetyScore || 0)),
-        estimatedHoursSafe: Math.min(24, Math.max(0, parsed.estimatedHoursSafe || 0)),
-        condition: parsed.condition || 'UNKNOWN',
-        recommendation: parsed.recommendation || 'Please check food manually',
-        concerns: parsed.concerns || 'NONE',
-        canDonate: parsed.canDonate === true
-      }
+      throw err;
     }
 
   } catch (error) {
@@ -137,56 +121,41 @@ Return ONLY a valid JSON object with these exact fields:
   "concerns": "any visible safety concerns, or NONE",
   "canDonate": true or false
 }
-Return ONLY the JSON object, no extra text, no markdown backticks`
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    // Multi-model fallback logic to prevent 503 errors from breaking the app
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest'];
-    let result = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`🤖 Attempting URL analysis with model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName })
-        result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              data: base64Image,
-              mimeType: mimeType
-            }
+    try {
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: mimeType
           }
-        ])
-        if (result) break; // Success! Break the loop
-      } catch (err) {
-        console.warn(`⚠️ Model ${modelName} failed`);
-        lastError = err;
-      }
-    }
+        }
+      ])
+      
+      const content = result.response.text()
+      const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim()
+      const parsed = JSON.parse(cleaned)
 
-    if (!result) {
-      if (lastError && lastError.status === 503) {
-        throw new Error('Google AI services are currently heavily overloaded worldwide. Please try uploading your food photo again in roughly 60 seconds!');
+      return {
+        success: true,
+        analysis: {
+          foodName: parsed.foodName || 'Unknown Food',
+          foodType: parsed.foodType || 'UNKNOWN',
+          safetyScore: Math.min(100, Math.max(0, parsed.safetyScore || 0)),
+          estimatedHoursSafe: Math.min(24, Math.max(0, parsed.estimatedHoursSafe || 0)),
+          condition: parsed.condition || 'UNKNOWN',
+          recommendation: parsed.recommendation || 'Please check food manually',
+          concerns: parsed.concerns || 'NONE',
+          canDonate: parsed.canDonate === true
+        }
       }
-      throw lastError || new Error('Google AI failed to respond.');
-    }
-
-    const content = result.response.text()
-    const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim()
-    const parsed = JSON.parse(cleaned)
-
-    return {
-      success: true,
-      analysis: {
-        foodName: parsed.foodName || 'Unknown Food',
-        foodType: parsed.foodType || 'UNKNOWN',
-        safetyScore: Math.min(100, Math.max(0, parsed.safetyScore || 0)),
-        estimatedHoursSafe: Math.min(24, Math.max(0, parsed.estimatedHoursSafe || 0)),
-        condition: parsed.condition || 'UNKNOWN',
-        recommendation: parsed.recommendation || 'Please check food manually',
-        concerns: parsed.concerns || 'NONE',
-        canDonate: parsed.canDonate === true
+    } catch (err) {
+      if (err.status === 503 || String(err).includes('503')) {
+        throw new Error('Google AI services are currently receiving heavy worldwide demand. The 2.5-flash model is temporarily too busy. Please try uploading your image again in roughly 60 seconds!');
       }
+      throw err;
     }
 
   } catch (error) {
