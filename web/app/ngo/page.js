@@ -45,11 +45,14 @@ export default function NGODashboard() {
         impactAPI.getMyImpact().catch(() => ({ data: { impact: null } }))
       ])
 
-      // ✅ FIX 3: If nearby returns 0, fallback to ALL listed donations
+      // ✅ FIX 3: Fetch both LISTED and MATCHED since Render might not be updated
       let allDonations = nearbyRes?.data?.donations || []
       if (allDonations.length === 0) {
-        const allRes = await donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } }))
-        allDonations = allRes?.data?.donations || []
+        const [listedRes, matchedRes] = await Promise.all([
+           donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } })),
+           donationAPI.getAll({ status: 'MATCHED' }).catch(() => ({ data: { donations: [] } }))
+        ])
+        allDonations = [...(listedRes?.data?.donations || []), ...(matchedRes?.data?.donations || [])]
       }
 
       setDonations(allDonations)
@@ -65,18 +68,28 @@ export default function NGODashboard() {
 
   const handleAccept = async (donation) => {
     try {
+      let dispatchId = null;
+      // Check the loaded dispatches array
       let dispatch = dispatches.find(d => d.donationId === donation.id)
-      if (!dispatch) {
+      if (dispatch) {
+        dispatchId = dispatch.id;
+      } 
+      // If Render failed us, rely on the embedded dispatch object from getAll!
+      else if (donation.dispatch && donation.dispatch.id) {
+        dispatchId = donation.dispatch.id;
+      }
+
+      if (!dispatchId) {
         const autoRes = await dispatchAPI.autoDispatch(donation.id);
         if (autoRes.data && autoRes.data.dispatch) {
-          dispatch = autoRes.data.dispatch;
+          dispatchId = autoRes.data.dispatch.id;
         } else {
           toast.error('No dispatch found and auto-dispatch failed');
           return;
         }
       }
       
-      await dispatchAPI.accept(dispatch.id)
+      await dispatchAPI.accept(dispatchId)
       toast.success('Donation accepted! Volunteer notified 🚴')
       fetchData()
     } catch (error) {

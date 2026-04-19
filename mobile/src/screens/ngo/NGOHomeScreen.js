@@ -33,8 +33,11 @@ export default function NGOHomeScreen({ navigation }) {
       
       let allDonations = nearbyRes?.data?.donations || []
       if (allDonations.length === 0) {
-        const allRes = await donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } }))
-        allDonations = allRes?.data?.donations || []
+        const [listedRes, matchedRes] = await Promise.all([
+           donationAPI.getAll({ status: 'LISTED' }).catch(() => ({ data: { donations: [] } })),
+           donationAPI.getAll({ status: 'MATCHED' }).catch(() => ({ data: { donations: [] } }))
+        ])
+        allDonations = [...(listedRes?.data?.donations || []), ...(matchedRes?.data?.donations || [])]
       }
       
       setDonations(allDonations)
@@ -49,18 +52,25 @@ export default function NGOHomeScreen({ navigation }) {
 
   const handleAccept = async (donation) => {
     try {
+      let dispatchId = null;
       let dispatch = dispatches.find(d => d.donationId === donation.id)
-      if (!dispatch) {
+      if (dispatch) {
+        dispatchId = dispatch.id;
+      } else if (donation.dispatch && donation.dispatch.id) {
+        dispatchId = donation.dispatch.id;
+      }
+
+      if (!dispatchId) {
         const autoRes = await dispatchAPI.autoDispatch(donation.id);
         if (autoRes.data && autoRes.data.dispatch) {
-          dispatch = autoRes.data.dispatch;
+          dispatchId = autoRes.data.dispatch.id;
         } else {
           Toast.show({ type: 'error', text1: 'No dispatch found and auto-dispatch failed' })
           return;
         }
       }
       
-      await dispatchAPI.accept(dispatch.id)
+      await dispatchAPI.accept(dispatchId)
       Toast.show({ type: 'success', text1: 'Accepted! Volunteer notified 🚴' })
       fetchData()
     } catch {
