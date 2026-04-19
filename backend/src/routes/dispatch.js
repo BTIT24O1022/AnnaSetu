@@ -303,7 +303,8 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'NGO') {
       where.OR = [
         { ngoId: req.user.id },
-        { ngoId: null }
+        { ngoId: null },
+        { status: 'PENDING' }
       ];
     }
     if (req.user.role === 'VOLUNTEER') {

@@ -34,18 +34,39 @@ Rules:
 - safetyScore 50-69 = fair, donate immediately
 - safetyScore below 50 = unsafe, do not donate
 - Be conservative — food safety is critical
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    let modelName = 'gemini-2.5-flash';
+    let model = genAI.getGenerativeModel({ model: modelName })
+    let result;
 
     try {
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType: mimeType
+      try {
+        result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: mimeType
+            }
           }
+        ])
+      } catch (err) {
+        if (err.status === 503 || String(err).includes('503')) {
+          console.log('🤖 2.5-flash gave 503, falling back to 1.5-flash...');
+          modelName = 'gemini-1.5-flash';
+          model = genAI.getGenerativeModel({ model: modelName });
+          result = await model.generateContent([
+            prompt,
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: mimeType
+              }
+            }
+          ])
+        } else {
+          throw err;
         }
-      ])
+      }
 
       const content = result.response.text()
       console.log('🤖 Gemini Response:', content)
@@ -121,18 +142,39 @@ Return ONLY a valid JSON object with these exact fields:
   "concerns": "any visible safety concerns, or NONE",
   "canDonate": true or false
 }
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    let modelName = 'gemini-2.5-flash';
+    let model = genAI.getGenerativeModel({ model: modelName })
+    let result;
 
     try {
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType: mimeType
+      try {
+        result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: mimeType
+            }
           }
+        ])
+      } catch (err) {
+        if (err.status === 503 || String(err).includes('503')) {
+          console.log('🤖 2.5-flash gave 503, falling back to 1.5-flash...');
+          modelName = 'gemini-1.5-flash';
+          model = genAI.getGenerativeModel({ model: modelName });
+          result = await model.generateContent([
+            prompt,
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: mimeType
+              }
+            }
+          ])
+        } else {
+          throw err;
         }
-      ])
+      }
       
       const content = result.response.text()
       const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim()
