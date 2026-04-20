@@ -55,30 +55,38 @@ export default function NGORequestsPage() {
 
   // ─── CSV Export ────────────────────────────────
   const handleExportCSV = () => {
-    if (donations.length === 0) {
-      toast.error('No data to export')
+    let dataToExport = []
+    if (activeTab === 'available') dataToExport = donations;
+    else if (activeTab === 'accepted') dataToExport = dispatches.filter(d => d.status === 'ACCEPTED' || d.status === 'PICKED').map(d => d.donation);
+    else if (activeTab === 'delivered') dataToExport = dispatches.filter(d => d.status === 'DELIVERED').map(d => d.donation);
+
+    // Filter out null/undefined donations (just in case)
+    dataToExport = dataToExport.filter(d => d)
+
+    if (dataToExport.length === 0) {
+      toast.error(`No data to export for the ${activeTab} tab`)
       return
     }
 
     const headers = ['Food Name', 'Quantity', 'Unit', 'Diet Type', 'Status', 'Expiry Hours', 'Donor', 'Address', 'Date']
-    const rows = donations.map(d => [
-      d.foodName,
-      d.quantity,
-      d.unit,
-      d.dietType,
-      d.status,
-      d.expiryHours,
-      d.donor?.name || '',
-      `"${d.address || ''}"`,
-      new Date(d.createdAt).toLocaleDateString()
+    const rows = dataToExport.map(d => [
+      `"${d?.foodName || ''}"`,
+      d?.quantity || '',
+      `"${d?.unit || ''}"`,
+      d?.dietType || '',
+      d?.status || '',
+      d?.expiryHours || '',
+      `"${d?.donor?.name || ''}"`,
+      `"${(d?.address || '').replace(/"/g, '""')}"`,
+      d?.createdAt ? new Date(d.createdAt).toLocaleDateString() : ''
     ])
 
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `annasetu-donations-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `annasetu-${activeTab}-requests-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
     toast.success('CSV exported! 📊')

@@ -259,7 +259,64 @@ router.patch('/:id/deliver', protect, async (req, res) => {
     })
 
     // Impact and GreenCoins are now awarded immediately during donation listing
-    // so we no longer increment them here on delivery to avoid double counting.
+    // to the DONOR, so we don't update donor impact again here.
+    // However, we MUST update the Volunteer and NGO impact!
+    const co2SavedFloat = parseFloat(donation.co2Saved || 0);
+    const quantityInt = parseInt(donation.quantity || 0);
+
+    if (dispatch.ngoId) {
+      await prisma.impact.upsert({
+        where: { userId: dispatch.ngoId },
+        update: {
+          totalMeals: { increment: quantityInt },
+          totalCo2: { increment: co2SavedFloat },
+          totalDonations: { increment: 1 },
+          greenCoins: { increment: quantityInt },
+          weeklyMeals: { increment: quantityInt },
+          monthlyMeals: { increment: quantityInt }
+        },
+        create: {
+          userId: dispatch.ngoId,
+          totalMeals: quantityInt,
+          totalCo2: co2SavedFloat,
+          totalDonations: 1,
+          greenCoins: quantityInt,
+          weeklyMeals: quantityInt,
+          monthlyMeals: quantityInt
+        }
+      });
+      await prisma.user.update({
+        where: { id: dispatch.ngoId },
+        data: { greenCoins: { increment: quantityInt } }
+      });
+    }
+
+    if (dispatch.volunteerId) {
+      await prisma.impact.upsert({
+        where: { userId: dispatch.volunteerId },
+        update: {
+          totalMeals: { increment: quantityInt },
+          totalCo2: { increment: co2SavedFloat },
+          totalDonations: { increment: 1 },
+          greenCoins: { increment: quantityInt },
+          weeklyMeals: { increment: quantityInt },
+          monthlyMeals: { increment: quantityInt }
+        },
+        create: {
+          userId: dispatch.volunteerId,
+          totalMeals: quantityInt,
+          totalCo2: co2SavedFloat,
+          totalDonations: 1,
+          greenCoins: quantityInt,
+          weeklyMeals: quantityInt,
+          monthlyMeals: quantityInt
+        }
+      });
+      await prisma.user.update({
+        where: { id: dispatch.volunteerId },
+        data: { greenCoins: { increment: quantityInt } }
+      });
+    }
 
     // ─── WhatsApp: Alert donor delivery complete ───
     if (donation.donor) {
@@ -310,7 +367,9 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'VOLUNTEER') {
       where.OR = [
         { volunteerId: req.user.id },
-        { volunteerId: null }
+        { volunteerId: null },
+        { status: 'PENDING' },
+        { status: 'ACCEPTED' } // Because if an NGO accepts, ANY volunteer should be able to pick it up!
       ];
     }
 

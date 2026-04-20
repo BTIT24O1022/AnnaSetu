@@ -100,7 +100,7 @@ export default function NGODashboard() {
 
   if (authLoading || loading) return <LoadingSpinner text="Loading NGO dashboard..." />
 
-  const pendingDispatches = dispatches.filter(d => d.status === 'PENDING')
+  const pendingDonations = donations.filter(d => d.status === 'LISTED')
   const acceptedDispatches = dispatches.filter(d => d.status === 'ACCEPTED' || d.status === 'PICKED')
 
   return (
@@ -124,7 +124,7 @@ export default function NGODashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Pending" value={pendingDispatches.length} color="orange" icon="⏳" />
+          <StatCard label="Pending" value={pendingDonations.length} color="orange" icon="⏳" />
           <StatCard label="Accepted" value={acceptedDispatches.length} color="blue" icon="✅" />
           <StatCard label="Meals Got" value={impact?.totalMeals || 0} color="green" icon="🍱" />
         </div>
