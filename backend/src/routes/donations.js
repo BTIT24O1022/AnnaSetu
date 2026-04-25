@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
 const { protect, restrictTo } = require('../middleware/auth');
+const dispatchService = require('../services/dispatch');
 
 const router = express.Router();
 
@@ -109,9 +110,12 @@ router.post('/', protect, restrictTo('DONOR'), async (req, res) => {
       data: { greenCoins: { increment: parseInt(quantity) } }
     });
 
+    // Automatically trigger dispatch so it finds nearest NGO and Volunteer
+    await dispatchService.runAutoDispatch(donation.id, req.app?.get('io'));
+
     res.status(201).json({
       success: true,
-      message: '🎉 Food listed successfully! Finding nearest NGO...',
+      message: '🎉 Food listed successfully! Assigned nearest NGO and Volunteer.',
       donation
     });
 

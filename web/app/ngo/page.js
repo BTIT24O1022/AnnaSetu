@@ -100,8 +100,31 @@ export default function NGODashboard() {
 
   if (authLoading || loading) return <LoadingSpinner text="Loading NGO dashboard..." />
 
-  const pendingDonations = donations.filter(d => d.status === 'LISTED')
+  const pendingDonations = donations.filter(d => d.status === 'LISTED' || d.status === 'MATCHED')
   const acceptedDispatches = dispatches.filter(d => d.status === 'ACCEPTED' || d.status === 'PICKED')
+
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('annasetu_token')
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://annasetu-2.onrender.com/api'
+      const res = await fetch(`${baseURL}/donations/export/csv`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error('Failed to export')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'annasetu-donations.csv'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('Export downloaded! 📥')
+    } catch (error) {
+      toast.error('Failed to export data')
+    }
+  }
 
   return (
     <div className="page-container pb-24" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f0fdf4 100%)' }}>
@@ -110,16 +133,25 @@ export default function NGODashboard() {
       <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
 
         {/* Welcome */}
-        <div>
-          <div className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full mb-2">
-            🏢 NGO Account
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full mb-2">
+              🏢 NGO Account
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Welcome, {user?.name?.split(' ')[0]}! 🏢
+            </h2>
+            <p className="text-gray-500 mt-1">
+              {donations.length} food donations available
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Welcome, {user?.name?.split(' ')[0]}! 🏢
-          </h2>
-          <p className="text-gray-500 mt-1">
-            {donations.length} food donations available
-          </p>
+          <button 
+            onClick={handleExport}
+            className="flex flex-col items-center justify-center p-2 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition border border-green-200"
+          >
+            <span className="text-xl mb-1">📥</span>
+            <span className="text-[10px] font-bold">CSV</span>
+          </button>
         </div>
 
         {/* Stats */}

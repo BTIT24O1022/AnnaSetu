@@ -75,11 +75,6 @@ async function runAutoDispatch(donationId, io) {
     if (donation.status !== 'LISTED') {
       return { success: false, message: 'Donation already matched' }
     }
-    await Dispatch.create({
-  donation: donation._id,
-  status: "PENDING"
-});
-
     const nearbyNGOs = await findNearestNGO(donation)
     const nearbyVolunteers = await findNearestVolunteer(donation)
 
